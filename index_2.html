@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resume Tailor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Layout: two-pane workbench — job input on the left, paper proofs on the right; stacks on phones */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --ink:#18202b; --muted:#5b6676; --line:#d5dbe3;
+  --accent:#1f4fd1; --accent-ink:#ffffff; --accent-soft:#e3eaff; --paper:#ffffff; --paper-ink:#111;
+  --warn:#9a5b00; --warn-soft:#fff3dc; --ok:#1b7a43;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161d; --panel:#19202a; --ink:#e6ebf2; --muted:#98a3b3; --line:#2c3644;
+  --accent:#7d9cff; --accent-ink:#0d1220; --accent-soft:#1f2a45; --paper:#f7f8fa; --paper-ink:#111;
+  --warn:#f0b459; --warn-soft:#3a2c12; --ok:#5fd18f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161d; --panel:#19202a; --ink:#e6ebf2; --muted:#98a3b3; --line:#2c3644;
+  --accent:#7d9cff; --accent-ink:#0d1220; --accent-soft:#1f2a45; --paper:#f7f8fa; --paper-ink:#111;
+  --warn:#f0b459; --warn-soft:#3a2c12; --ok:#5fd18f; color-scheme:dark}
+*{box-sizing:border-box} [hidden]{display:none!important} .tabs button[aria-checked=true]{background:var(--accent-soft);color:var(--ink)} select{appearance:auto}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:16px;padding-block:20px 40px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:16px}
+h1{font-family:var(--f-display);font-weight:700;font-size:26px;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0}
+.grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+label{font-weight:600;font-size:13px;display:block;margin-bottom:5px}
+.hint{color:var(--muted);font-size:12px;font-weight:400}
+input[type=url],textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px}
+textarea{resize:vertical;min-height:150px;font-size:13px}
+#extra{min-height:80px}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
+button{font:inherit;font-weight:600;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:default}
+.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);padding:11px 16px;font-size:15px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.status{font-family:var(--f-mono);font-size:12px;color:var(--muted);min-height:18px;white-space:pre-wrap}
+.status.err{color:var(--warn)}
+details summary{cursor:pointer;font-weight:600;font-size:13px}
+.right{display:flex;flex-direction:column;gap:12px;min-width:0}
+.bar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:3px}
+.tabs button{border:0;padding:6px 12px;background:transparent;color:var(--muted)}
+.tabs button[aria-selected=true]{background:var(--accent-soft);color:var(--ink)}
+.badge{font-family:var(--f-mono);font-size:11px;padding:3px 8px;border-radius:99px;background:var(--accent-soft);color:var(--ink)}
+.paper-scroll{overflow-x:auto}
+.paper{background:var(--paper);color:var(--paper-ink);width:100%;max-width:816px;margin:0 auto;padding:44px 48px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 24px rgba(20,30,50,.10);font-family:Arial,Helvetica,sans-serif;font-size:12.4px;line-height:1.38}
+@media (max-width:600px){.paper{padding:24px 18px;font-size:11.5px}}
+.paper h2{margin:0;text-align:center;font-size:22px;letter-spacing:.06em}
+.paper .tg{text-align:center;font-weight:bold;color:#333;margin-top:2px}
+.paper .ct{text-align:center;font-size:11.5px;margin:2px 0 6px;overflow-wrap:anywhere}
+.paper h3{font-size:13px;letter-spacing:.04em;border-bottom:1.3px solid #111;margin:12px 0 5px;padding-bottom:2px}
+.paper p{margin:0 0 4px}
+.paper .rl{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;font-weight:bold;margin-top:7px}
+.paper ul{margin:2px 0 0;padding-left:18px}
+.paper li{margin-bottom:2px}
+.paper .cl p{margin:0 0 11px;line-height:1.55}
+.notes{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.notes h4{font-family:var(--f-display);font-weight:500;font-size:16px;margin:0 0 6px}
+.notes ul{margin:0 0 14px;padding-left:18px}
+.gap{background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn);padding:8px 10px;border-radius:4px;margin-bottom:6px;list-style:none;margin-left:-18px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{font-family:var(--f-mono);font-size:11.5px;padding:2px 8px;border:1px solid var(--line);border-radius:5px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Resume Tailor</h1>
+      <p class="sub">Paste a job link or description. Get a tailored resume and cover letter as PDFs.</p>
+    </div>
+    <span class="badge" id="who">Your resume never leaves this browser except to the AI you choose</span>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="Job input">
+      <details id="baseBox">
+        <summary>1. Your base resume <span class="hint" id="baseHint">(saved in this browser only)</span></summary>
+        <p class="hint" style="margin:6px 0">Paste your full resume as plain text (copy it from your PDF or Word file). Every tailored version is built only from this and your extra facts.</p>
+        <textarea id="base" style="min-height:220px;font-size:12px" placeholder="Your Name&#10;City, ST | phone | email | linkedin&#10;&#10;SUMMARY&#10;...&#10;&#10;EXPERIENCE&#10;Company, Title, Dates&#10;- bullet..."></textarea>
+      </details>
+      <div>
+        <label for="url">2. Job posting link</label>
+        <input type="url" id="url" placeholder="https://careers.example.com/jobs/12345">
+        <div class="hint" style="margin-top:4px">Public postings can be read by the AI. If a link needs a sign-in (LinkedIn often does), paste the description below.</div>
+      </div>
+      <div class="or">or</div>
+      <div>
+        <label for="jd">Job description <span class="hint">(paste this when you can; it works best)</span></label>
+        <textarea id="jd" placeholder="Paste the full job description here"></textarea>
+      </div>
+      <details>
+        <summary>Extra facts about me <span class="hint">(optional, remembered in this browser)</span></summary>
+        <div style="margin-top:8px">
+          <textarea id="extra" placeholder="True things not on the base resume, e.g. &quot;Used NIST AI RMF to structure vendor reviews&quot; or &quot;Built and tested MCP servers in personal projects&quot;. Only these, plus the base resume, are used."></textarea>
+        </div>
+      </details>
+      <div>
+        <label>3. How to run it</label>
+        <div class="tabs" role="radiogroup" id="modeTabs" style="width:max-content;max-width:100%">
+          <button type="button" role="radio" id="m-manual" aria-checked="true">Copy-paste (free)</button>
+          <button type="button" role="radio" id="m-api" aria-checked="false">My API key</button>
+        </div>
+        <div class="hint" id="modeHint" style="margin-top:6px"></div>
+      </div>
+      <div id="apiBox" hidden style="display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:8px;padding:12px">
+        <div><label for="provider">Provider</label>
+          <select id="provider" style="width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px">
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openai">OpenAI (ChatGPT)</option>
+            <option value="gemini">Google (Gemini)</option>
+          </select></div>
+        <div><label for="apikey">API key</label><input type="password" id="apikey" autocomplete="off" style="width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px">
+          <div class="hint" id="keyHint" style="margin-top:4px"></div></div>
+        <div><label for="model">Model</label><div class="row"><input id="model" list="models" style="flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px"><datalist id="models"></datalist><button type="button" id="loadModels">List my models</button></div></div>
+        <div class="row"><button type="button" id="testKey">Test key</button><button type="button" id="forgetKey">Forget key</button></div>
+      </div>
+      <button class="primary" id="go">Tailor resume &amp; cover letter</button>
+      <div class="status" id="status" role="status"></div>
+      <div id="manual" hidden style="display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:14px">
+        <p style="margin:0"><b>No API key? Use any AI chat.</b> <span class="hint">The prompt is copied. Paste it into Claude, ChatGPT or Gemini, then paste the full answer below.</span></p>
+        <div class="row"><button type="button" id="copyPrompt">Copy prompt again</button></div>
+        <label for="answer" style="margin:0">AI answer</label>
+        <textarea id="answer" style="min-height:120px;font-family:var(--f-mono);font-size:11.5px" placeholder='Paste the whole reply here. It starts with {"company": ...'></textarea>
+        <button type="button" class="primary" id="build">Build resume &amp; letter</button>
+      </div>
+    </section>
+
+    <section class="right" aria-label="Results">
+      <div class="bar">
+        <div class="tabs" role="tablist">
+          <button role="tab" id="t-resume" aria-selected="true">Resume</button>
+          <button role="tab" id="t-letter" aria-selected="false">Cover letter</button>
+          <button role="tab" id="t-notes" aria-selected="false">Fit notes</button>
+        </div>
+        <div class="row">
+          <span class="badge" id="forjob"></span>
+          <button id="dlResume">Download resume PDF</button>
+          <button id="dlLetter">Download cover letter PDF</button>
+          <button id="copyLetter">Copy letter text</button>
+        </div>
+      </div>
+      <div class="status" id="dlstatus"></div>
+      <div class="paper-scroll"><div class="paper" id="view"></div></div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ---------- Storage helpers (per-viewer conveniences) ---------- */
+const ls = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+$("base").value = ls.get("rt.basetext") || "";
+const baseText = () => $("base").value.trim();
+function baseState(){ const has=baseText().length>200; $("baseBox").open = !has; $("baseHint").textContent = has ? "(saved in this browser)" : "(required, saved in this browser only)"; }
+$("base").addEventListener("input", () => ls.set("rt.basetext", $("base").value));
+baseState();
+$("extra").value = ls.get("rt.extra") || "";
+$("extra").addEventListener("input", () => ls.set("rt.extra", $("extra").value));
+
+let result = null;
+try { const r = ls.get("rt.last"); if (r) result = JSON.parse(r); } catch(e) {}
+let tab = "resume";
+
+function setStatus(msg, err){ const s=$("status"); s.textContent=msg; s.classList.toggle("err", !!err); }
+
+/* ---------- Preview rendering ---------- */
+function resumeHTML(r){
+  const b = x => x.label ? `<b>${esc(x.label)}:</b> ${esc(x.text)}` : esc(x.text);
+  return `<h2>${esc(r.name)}</h2>${r.tagline?`<div class="tg">${esc(r.tagline)}</div>`:""}<div class="ct">${esc(r.contact)}</div>
+  <h3>PROFESSIONAL SUMMARY</h3><p>${esc(r.summary)}</p>
+  <h3>CORE COMPETENCIES</h3>${(r.competencies||[]).map(c=>`<p>${b(c)}</p>`).join("")}
+  <h3>PROFESSIONAL EXPERIENCE</h3>${(r.experience||[]).map(e=>`<div class="rl"><span>${esc(e.company)} — ${esc(e.title)}</span><span>${esc(e.location)} | ${esc(e.dates)}</span></div><ul>${(e.bullets||[]).map(x=>`<li>${b(x)}</li>`).join("")}</ul>`).join("")}
+  ${(r.publications||[]).length?`<h3>PUBLICATIONS</h3>${r.publications.map(p=>`<p>${esc(p)}</p>`).join("")}`:""}
+  <h3>EDUCATION &amp; CREDENTIALS</h3>${(r.education||[]).map(e=>`<div class="rl" style="margin-top:2px"><span>${esc(e.degree)} <span style="font-weight:normal">— ${esc(e.school)}</span></span><span>${esc(e.year)}</span></div>`).join("")}
+  ${r.certifications?`<p style="margin-top:5px"><b>Certifications &amp; Training:</b> ${esc(r.certifications)}</p>`:""}`;
+}
+function letterHTML(res){
+  const r=res.resume, c=res.coverLetter||{paragraphs:[]};
+  const date=new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+  return `<div class="cl"><h2 style="text-align:left">${esc(r.name)}</h2><div class="ct" style="text-align:left;margin-bottom:22px">${esc(r.contact)}</div>
+  <p>${esc(date)}</p><p>${esc(res.company||"")}${res.role?`<br>Re: ${esc(res.role)}`:""}</p>
+  <p>${esc(c.greeting||"Dear Hiring Team,")}</p>${c.paragraphs.map(p=>`<p>${esc(p)}</p>`).join("")}
+  <p>${esc(c.closing||"Sincerely,")}<br>${esc(titleCase(r.name))}</p></div>`;
+}
+function notesHTML(res){
+  const n=res.notes||{};
+  return `<div class="notes" style="font-family:var(--f-body);color:var(--ink)">
+   <h4>Matched from the job</h4><div class="chips">${(n.matched||[]).map(m=>`<span class="chip">${esc(m)}</span>`).join("")||"<span class='hint'>None listed</span>"}</div>
+   <h4>Gaps to address</h4><ul>${(n.gaps||[]).map(g=>`<li class="gap">${esc(g)}</li>`).join("")||"<li>None flagged</li>"}</ul>
+   <h4>Tips</h4><ul>${(n.tips||[]).map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`;
+}
+const titleCase = s => String(s||"").toLowerCase().replace(/\b\w/g, c=>c.toUpperCase());
+function render(){
+  const v=$("view");
+  ["dlResume","dlLetter","copyLetter"].forEach(id=>$(id).disabled=!result);
+  $("forjob").hidden=!result;
+  if(!result){ v.style.cssText=""; $("forjob").textContent="";
+    v.innerHTML=`<div style="font-family:var(--f-body);color:#444;max-width:440px;margin:40px auto;text-align:center"><h2 style="font-size:20px;letter-spacing:0">Your tailored resume appears here</h2>
+    <p style="margin-top:10px">1. Paste your resume once (it's remembered in this browser).<br>2. Paste a job description.<br>3. Click <b>Tailor resume &amp; cover letter</b>.</p>
+    <p style="margin-top:10px;color:#666;font-size:12px">Copy-paste mode is free with any AI chat. Add your own Anthropic, OpenAI or Gemini API key to run it here in one click.</p></div>`; return; }
+  ["resume","letter","notes"].forEach(t=>$("t-"+t).setAttribute("aria-selected", t===tab));
+  if(tab==="notes"){ v.style.cssText="background:transparent;box-shadow:none;padding:0"; v.innerHTML=notesHTML(result); }
+  else { v.style.cssText=""; v.innerHTML = tab==="resume" ? resumeHTML(result.resume) : letterHTML(result); }
+  $("forjob").textContent = (result.example?"Example: ":"For: ") + [result.company,result.role].filter(Boolean).join(" · ");
+}
+["resume","letter","notes"].forEach(t=>$("t-"+t).onclick=()=>{tab=t;render();});
+render();
+
+/* ---------- PDF generation (jsPDF, text-based so it stays ATS-readable) ---------- */
+function makeWriter(doc){
+  const W=612, M=46, maxW=W-2*M, bottom=792-46; let y=50;
+  const ensure=h=>{ if(y+h>bottom){ doc.addPage(); y=50; } };
+  function rich(tokens,{size=9.4,x=M,width=maxW,lh=1.32,indent=0}={}){
+    // tokens: [{text,bold}] -> wrapped lines with mixed weights
+    const words=[]; tokens.forEach(t=>String(t.text).split(/(\s+)/).forEach(w=>{ if(w) words.push({w,bold:t.bold}); }));
+    doc.setFontSize(size); const lines=[]; let line=[], lw=0;
+    for(const wd of words){
+      doc.setFont("helvetica", wd.bold?"bold":"normal"); const ww=doc.getTextWidth(wd.w);
+      if(/^\s+$/.test(wd.w)){ if(line.length){ line.push({...wd,ww}); lw+=ww; } continue; }
+      if(lw+ww>width-indent && line.length){ while(line.length && /^\s+$/.test(line[line.length-1].w)) line.pop(); lines.push(line); line=[]; lw=0; }
+      line.push({...wd,ww}); lw+=ww;
+    }
+    if(line.length) lines.push(line);
+    const step=size*lh;
+    lines.forEach((ln,i)=>{ ensure(step); let cx=x+(i?indent:0); ln.forEach(p=>{ doc.setFont("helvetica",p.bold?"bold":"normal"); doc.text(p.w,cx,y+size*0.8); cx+=p.ww; }); y+=step; });
+  }
+  return {
+    get y(){return y}, set y(v){y=v}, M, W, maxW, ensure, rich,
+    center(t,size,bold){ doc.setFont("helvetica",bold?"bold":"normal"); doc.setFontSize(size); const lines=doc.splitTextToSize(t,maxW); lines.forEach(l=>{ensure(size*1.3); doc.text(l,W/2,y+size*.8,{align:"center"}); y+=size*1.3;}); },
+    heading(t){ ensure(30); y+=7; doc.setFont("helvetica","bold"); doc.setFontSize(10.5); doc.text(t,M,y+8.5); y+=12; doc.setLineWidth(.9); doc.line(M,y,W-M,y); y+=4; },
+    split(left,right,size=9.6){ ensure(size*1.4); doc.setFontSize(size); doc.setFont("helvetica","bold"); const rw=doc.getTextWidth(right); doc.text(right,W-M,y+size*.8,{align:"right"});
+      const ll=doc.splitTextToSize(left,maxW-rw-10); ll.forEach(l=>{doc.text(l,M,y+size*.8); y+=size*1.35;}); },
+  };
+}
+function resumePDF(r){
+  const { jsPDF } = window.jspdf; const doc=new jsPDF({unit:"pt",format:"letter"}); const w=makeWriter(doc);
+  w.center(r.name,18,true); if(r.tagline){ w.y+=1; w.center(r.tagline,9.8,true); } w.center(r.contact,8.8,false); w.y+=2;
+  const bl = x => x.label ? [{text:x.label+": ",bold:true},{text:x.text}] : [{text:x.text}];
+  w.heading("PROFESSIONAL SUMMARY"); w.rich([{text:r.summary}]);
+  w.heading("CORE COMPETENCIES"); (r.competencies||[]).forEach(c=>{ w.rich(bl(c)); w.y+=1.5; });
+  w.heading("PROFESSIONAL EXPERIENCE");
+  (r.experience||[]).forEach((e,i)=>{ w.ensure(36); if(i) w.y+=4; w.split(`${e.company} — ${e.title}`, `${e.location} | ${e.dates}`);
+    (e.bullets||[]).forEach(b=>{ w.ensure(12); doc.setFont("helvetica","normal"); doc.setFontSize(9.4); doc.text("•", w.M+4, w.y+7.5); w.rich(bl(b),{x:w.M+14,width:w.maxW-14}); w.y+=1.5; }); });
+  if((r.publications||[]).length){ w.heading("PUBLICATIONS"); r.publications.forEach(p=>w.rich([{text:p,bold:true}])); }
+  w.heading("EDUCATION & CREDENTIALS");
+  (r.education||[]).forEach(e=>{ w.ensure(14); doc.setFontSize(9.4); doc.setFont("helvetica","normal"); doc.text(String(e.year||""), w.W-w.M, w.y+7.5,{align:"right"}); w.rich([{text:e.degree,bold:true},{text:" — "+e.school}],{width:w.maxW-40}); });
+  if(r.certifications){ w.y+=3; w.rich([{text:"Certifications & Training: ",bold:true},{text:r.certifications}]); }
+  addFooters(doc, `${titleCase(r.name)} — Resume`); return doc;
+}
+function letterPDF(res){
+  const { jsPDF } = window.jspdf; const doc=new jsPDF({unit:"pt",format:"letter"}); const w=makeWriter(doc); const r=res.resume, c=res.coverLetter||{paragraphs:[]};
+  w.y=60; doc.setFont("helvetica","bold"); doc.setFontSize(17); doc.text(r.name,w.M,w.y+14); w.y+=22;
+  w.rich([{text:r.contact}],{size:9}); w.y+=4; doc.setLineWidth(.9); doc.line(w.M,w.y,w.W-w.M,w.y); w.y+=22;
+  const P=(t,gap=10)=>{ w.rich([{text:t}],{size:10.5,lh:1.45}); w.y+=gap; };
+  P(new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}),12);
+  if(res.company) P(res.company,0); if(res.role) P("Re: "+res.role,12); else w.y+=12;
+  P(c.greeting||"Dear Hiring Team,"); c.paragraphs.forEach(p=>P(p));
+  P(c.closing||"Sincerely,",2); P(titleCase(r.name),0);
+  return doc;
+}
+function addFooters(doc,label){ const n=doc.getNumberOfPages(); for(let i=1;i<=n;i++){ doc.setPage(i); doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(110); doc.text(label,46,770); doc.text(`Page ${i} of ${n}`,566,770,{align:"right"}); doc.setTextColor(0);} }
+const slug = s => String(s||"").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,40);
+
+async function save(kind){
+  const st=$("dlstatus"); st.classList.remove("err");
+  if(!window.jspdf){ st.textContent="The PDF library didn't load. Reload the page and try again."; st.classList.add("err"); return; }
+  const doc = kind==="resume" ? resumePDF(result.resume) : letterPDF(result);
+  const who=slug(titleCase(result.resume.name)), co=slug(result.company);
+  const filename=`${who}_${kind==="resume"?"Resume":"Cover_Letter"}${co?"_"+co:""}.pdf`;
+  doc.save(filename); st.textContent="Saved "+filename;
+}
+$("dlResume").onclick=()=>save("resume");
+$("dlLetter").onclick=()=>save("letter");
+$("copyLetter").onclick=async()=>{
+  const c=result.coverLetter; const txt=[c.greeting,...c.paragraphs,c.closing,titleCase(result.resume.name)].join("\n\n");
+  try{ await navigator.clipboard.writeText(txt); $("dlstatus").textContent="Cover letter copied."; }
+  catch(e){ tab="letter"; render(); const s=window.getSelection(), rg=document.createRange(); rg.selectNodeContents($("view")); s.removeAllRanges(); s.addRange(rg); $("dlstatus").textContent="Copy didn't work here. The letter is selected; press Cmd/Ctrl+C."; }
+};
+
+
+/* ---------- Run mode + API keys (stay in this browser, sent only to the provider) ---------- */
+const PROVIDERS={
+  anthropic:{label:"Anthropic", ph:"sk-ant-...", model:"claude-sonnet-4-5", console:"console.anthropic.com", canFetch:true},
+  openai:{label:"OpenAI", ph:"sk-...", model:"gpt-4o", console:"platform.openai.com/api-keys", canFetch:false},
+  gemini:{label:"Google Gemini", ph:"AIza...", model:"gemini-2.5-flash", console:"aistudio.google.com/apikey", canFetch:false}
+};
+let mode = ls.get("rt.mode")==="api" ? "api" : "manual";
+const prov = () => $("provider").value;
+function loadProvider(){
+  const p=PROVIDERS[prov()];
+  $("apikey").value = ls.get("rt.key."+prov()) || (prov()==="anthropic" ? (ls.get("rt.key")||"") : "");
+  $("apikey").placeholder = p.ph;
+  $("model").value = ls.get("rt.model."+prov()) || p.model;
+  $("models").innerHTML="";
+  $("keyHint").textContent = `Get a key at ${p.console}. It's saved only in this browser and sent only to ${p.label}. API usage is billed by ${p.label}, separately from any chat subscription.` + (p.canFetch?"":" This provider can't open job links, so paste the description.");
+}
+function setMode(m){
+  mode=m; ls.set("rt.mode",m);
+  $("m-manual").setAttribute("aria-checked", m==="manual"); $("m-api").setAttribute("aria-checked", m==="api");
+  $("apiBox").hidden = m!=="api";
+  $("modeHint").textContent = m==="api" ? "Runs right here in one click, using your own API key." : "No key needed. The page gives you a prompt to paste into any AI chat, then turns the reply into PDFs.";
+}
+$("provider").value = PROVIDERS[ls.get("rt.provider")] ? ls.get("rt.provider") : "anthropic";
+$("provider").addEventListener("change", ()=>{ ls.set("rt.provider",prov()); loadProvider(); });
+$("apikey").addEventListener("change", ()=>ls.set("rt.key."+prov(),$("apikey").value.trim()));
+$("model").addEventListener("change", ()=>ls.set("rt.model."+prov(),$("model").value.trim()));
+$("m-manual").onclick=()=>setMode("manual"); $("m-api").onclick=()=>setMode("api");
+$("forgetKey").onclick=()=>{ ls.set("rt.key."+prov(),""); if(prov()==="anthropic") ls.set("rt.key",""); $("apikey").value=""; setStatus(PROVIDERS[prov()].label+" key removed from this browser."); };
+loadProvider(); setMode(mode);
+
+function keyOrThrow(){ const k=$("apikey").value.trim(); if(!k) throw new Error("Enter your API key first."); return k; }
+function antHdrs(key, beta){
+  const h={"x-api-key":key,"anthropic-version":"2023-06-01","content-type":"application/json","anthropic-dangerous-direct-browser-access":"true"};
+  if(beta) h["anthropic-beta"]=beta; return h;
+}
+async function getJSON(r){ const j=await r.json().catch(()=>({})); if(!r.ok){ const m=j.error?.message||j.error?.status||("HTTP "+r.status);
+  if(r.status===401||r.status===403) throw new Error("Your API key was rejected ("+m+"). Check it and try again.");
+  if(r.status===429) throw new Error("Rate limited or out of credit ("+m+"). Wait a minute or check your billing.");
+  throw new Error(m);} return j; }
+async function listModels(){
+  const key=keyOrThrow(), p=prov();
+  if(p==="anthropic"){ const j=await getJSON(await fetch("https://api.anthropic.com/v1/models?limit=100",{headers:antHdrs(key)})); return j.data.map(m=>({id:m.id,name:m.display_name||m.id})); }
+  if(p==="openai"){ const j=await getJSON(await fetch("https://api.openai.com/v1/models",{headers:{Authorization:"Bearer "+key}})); return j.data.map(m=>m.id).filter(id=>/^(gpt|o\d|chatgpt)/.test(id)).sort().map(id=>({id,name:id})); }
+  const j=await getJSON(await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",{headers:{"x-goog-api-key":key}}));
+  return (j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")).map(m=>({id:m.name.replace(/^models\//,""),name:m.displayName||m.name}));
+}
+$("loadModels").onclick = async ()=>{
+  try{ const ms=await listModels(); $("models").innerHTML=ms.map(m=>`<option value="${esc(m.id)}">${esc(m.name)}</option>`).join(""); setStatus(`Found ${ms.length} models. Click the Model box to pick one.`); }
+  catch(e){ setStatus("Couldn't list models: "+e.message,true); }
+};
+$("testKey").onclick = async ()=>{
+  try{ setStatus("Checking key…"); const ms=await listModels(); setStatus(`Key works. ${ms.length} models available.`); }
+  catch(e){ setStatus(e.message,true); }
+};
+
+/* ---------- Tailoring prompt ---------- */
+function buildPrompt(jd, extra){
+  return `You are an expert resume writer and recruiter. Tailor the candidate's resume to the job below and write a cover letter.
+
+STRICT HONESTY RULES
+- Use ONLY facts from BASE_RESUME and EXTRA_FACTS. Never invent employers, titles, dates, degrees, certifications, metrics, tools, frameworks, publications, or experience.
+- Keep every role, company, title, location and date exactly as given. Take name and contact line from BASE_RESUME. Keep all roles; you may shorten older roles.
+- You may reword, reorder, re-label bullets, emphasize relevant facts, and mirror the job's vocabulary where the underlying fact supports it.
+- Only list a framework, tool or skill if it appears in BASE_RESUME or EXTRA_FACTS.
+- Requirements the candidate cannot truthfully claim go in notes.gaps, not in the resume.
+
+STYLE
+- Fit on 2 pages: summary 4-5 sentences; 5-7 competency lines; 3-5 bullets for recent roles, 1 for older ones.
+- Each bullet: short bold label + one sentence, strong verb, concrete. No em-dash asides, no clichés ("passionate", "results-driven", "synergy").
+- tagline: 3-4 role-aligned focus areas separated by " | ".
+- Cover letter: 3-4 paragraphs, ~250-350 words, specific to this company and role, first person, warm and direct, references 2-3 real accomplishments. No invented details about the company beyond the job description.
+
+Return ONLY JSON (no code fences, no commentary) with this exact shape:
+{"company":"", "role":"",
+ "resume":{"name":"","tagline":"","contact":"","summary":"","competencies":[{"label":"","text":""}],
+   "experience":[{"company":"","title":"","location":"","dates":"","bullets":[{"label":"","text":""}]}],
+   "publications":[""],"education":[{"degree":"","school":"","year":""}],"certifications":""},
+ "coverLetter":{"greeting":"","paragraphs":[""],"closing":"Sincerely,"},
+ "notes":{"matched":["short keyword"],"gaps":["requirement the resume can't show"],"tips":["one actionable tip"]}}
+
+BASE_RESUME:
+${baseText()}
+
+EXTRA_FACTS (true, provided by the candidate):
+${extra.trim()||"(none)"}
+
+JOB:
+${jd}`;
+}
+function parseJSONText(text, stop){
+  const a=text.indexOf("{"), z=text.lastIndexOf("}");
+  if(a<0||z<a) throw new Error("The AI didn't return a resume. If you used a link, paste the job description instead.");
+  try{ return JSON.parse(text.slice(a,z+1)); }catch(e){ throw new Error(stop?"The answer was cut off. Try again.":"The AI's answer couldn't be read. Try again."); }
+}
+async function callAI(prompt, url){
+  const key=keyOrThrow(), p=prov(), model=$("model").value.trim()||PROVIDERS[p].model;
+  if(p==="anthropic"){
+    const body={model, max_tokens:12000, messages:[{role:"user",content:prompt}]}; let beta;
+    if(url){ body.tools=[{type:"web_fetch_20250910",name:"web_fetch",max_uses:3}]; beta="web-fetch-2025-09-10"; }
+    let j; try{ j=await getJSON(await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:antHdrs(key,beta),body:JSON.stringify(body)})); }
+    catch(e){ if(url && /web_fetch|beta|tool/i.test(e.message)) throw new Error("This model couldn't open the link. Paste the job description instead."); throw e; }
+    return parseJSONText((j.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n"), j.stop_reason==="max_tokens");
+  }
+  if(url) throw new Error(PROVIDERS[p].label+" can't open job links from here. Paste the job description instead.");
+  if(p==="openai"){
+    const j=await getJSON(await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{Authorization:"Bearer "+key,"content-type":"application/json"},
+      body:JSON.stringify({model, messages:[{role:"user",content:prompt}], response_format:{type:"json_object"}})}));
+    const c=j.choices?.[0]; return parseJSONText(c?.message?.content||"", c?.finish_reason==="length");
+  }
+  const j=await getJSON(await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:"POST",headers:{"x-goog-api-key":key,"content-type":"application/json"},
+    body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}], generationConfig:{responseMimeType:"application/json",maxOutputTokens:12000}})}));
+  const c=j.candidates?.[0]; return parseJSONText((c?.content?.parts||[]).map(x=>x.text||"").join(""), c?.finishReason==="MAX_TOKENS");
+}
+
+$("go").onclick = async () => {
+  const url=$("url").value.trim(); let jd=$("jd").value.trim();
+  if(!url && jd.length<80){ setStatus("Add a job link or paste the job description first.", true); return; }
+  if(baseText().length<200){ $("baseBox").open=true; setStatus("Paste your base resume first (step 1).", true); return; }
+  if(mode!=="api"){ manualPrompt(url, jd); return; }
+  if(!$("apikey").value.trim()){ setStatus("Add your API key (step 3), or switch to Copy-paste.", true); $("apikey").focus(); return; }
+  $("go").disabled=true;
+  const t0=Date.now(); const tick=setInterval(()=>setStatus(`Working… ${Math.round((Date.now()-t0)/1000)}s (usually 30–90 seconds)`),1000);
+  try{
+    const job = jd ? (url?`Posting URL: ${url}\n\n`:"")+jd.slice(0,30000)
+                   : `Use the web_fetch tool to read the job posting at ${url}. If you cannot read a real job description there, reply with exactly NO_JOB and nothing else.`;
+    const out = await callAI(buildPrompt(job, $("extra").value), jd?null:url);
+    if(!out || !out.resume || !Array.isArray(out.resume.experience)) throw new Error("Claude's answer was missing the resume. Try again.");
+    out.coverLetter = out.coverLetter || {paragraphs:[]}; out.coverLetter.paragraphs = out.coverLetter.paragraphs||[];
+    useResult(out);
+  }catch(e){ setStatus(e.message||"Something went wrong. Try again.", true); }
+  finally{ clearInterval(tick); $("go").disabled=false; }
+};
+function useResult(out){
+  if(!out || !out.resume || !Array.isArray(out.resume.experience)) throw new Error("The answer was missing the resume. Make sure you pasted the whole reply.");
+  out.coverLetter = out.coverLetter || {paragraphs:[]}; out.coverLetter.paragraphs = out.coverLetter.paragraphs||[];
+  result = out; ls.set("rt.last", JSON.stringify(out)); tab="resume"; render();
+  setStatus("Done. Review the fit notes, then download the PDFs.");
+}
+
+/* ---------- No-API mode: copy the prompt into any AI chat, paste the answer back ---------- */
+let lastPrompt="";
+async function copyText(t){ try{ await navigator.clipboard.writeText(t); return true; }catch(e){ return false; } }
+async function manualPrompt(url, jd){
+  const job = jd ? (url?`Posting URL: ${url}\n\n`:"")+jd.slice(0,30000) : `Read the job posting at ${url}. If you cannot open it, say so and stop.`;
+  lastPrompt = buildPrompt(job, $("extra").value);
+  $("manual").hidden=false;
+  const ok = await copyText(lastPrompt);
+  setStatus(ok ? "Prompt copied. Paste it into your AI chat, then paste the answer below." : "Click \"Copy prompt again\" to copy the prompt.");
+  $("answer").focus();
+}
+$("copyPrompt").onclick = async ()=>{ if(!lastPrompt) return; const ok=await copyText(lastPrompt); setStatus(ok?"Prompt copied.":"Copy didn't work in this browser. Try another browser.", !ok); };
+$("build").onclick = ()=>{
+  const t=$("answer").value; const a=t.indexOf("{"), z=t.lastIndexOf("}");
+  try{
+    if(a<0||z<a) throw new Error("That doesn't look like the AI's JSON answer. Paste the whole reply, starting at the first {.");
+    let out; try{ out=JSON.parse(t.slice(a,z+1)); }catch(e){ throw new Error("The answer is cut off or not valid JSON. Ask the AI to \"return the complete JSON only\" and paste it again."); }
+    useResult(out);
+  }catch(e){ setStatus(e.message, true); }
+};
+</script>
+</body></html>
